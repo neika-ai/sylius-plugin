@@ -13,7 +13,7 @@ use Neika\Sdk\DTO\ToolDefinition;
 use Neika\Sdk\DTO\ToolResult;
 use Neika\SymfonyBundle\NeikaSymfonyBundle;
 use Neika\SymfonyBundle\Translation\ChannelFallbackTranslator;
-use Neika\SyliusPlugin\Product\ProductViewFactory;
+use Neika\SyliusPlugin\Contract\ProductViewFactoryInterface;
 use Neika\SyliusPlugin\Tool\DTO\ProductAvailabilityArguments;
 use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\Component\Core\Repository\ProductVariantRepositoryInterface;
@@ -23,8 +23,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class GetProductAvailabilityTool implements ChatbotToolInterface
 {
     public function __construct(
-        private readonly ChannelResolver     $channelResolver,
-        private readonly ProductViewFactory  $productViewFactory,
+        private readonly ChannelResolver             $channelResolver,
+        private readonly ProductViewFactoryInterface $productViewFactory,
 
         #[Autowire(service: ChannelFallbackTranslator::class)]
         private readonly TranslatorInterface $translator,
