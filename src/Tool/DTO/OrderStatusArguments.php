@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Neika\SyliusPlugin\Tool\DTO;
 
+use Neika\Sdk\Validator\Sensitive;
 use Symfony\Component\Validator\Constraints as Assert;
 
 class OrderStatusArguments
@@ -15,9 +16,11 @@ class OrderStatusArguments
     public function __construct(
         #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Length(max: 32)]
+        #[Sensitive]
         public readonly string $orderNumber = '',
         #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Email(normalizer: 'trim')]
+        #[Sensitive]
         public readonly string $email = '',
     ) {
         $this->normalizedOrderNumber = (string) preg_replace(self::NON_ALPHANUMERIC_PATTERN, '', $orderNumber);
