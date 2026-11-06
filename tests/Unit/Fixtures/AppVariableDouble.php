@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Neika\SyliusPlugin\Tests\Unit\Fixtures;
+
+class AppVariableDouble
+{
+    public function __construct(
+        private readonly string $locale,
+    ) {
+    }
+
+    public function getLocale(): string
+    {
+        return $this->locale;
+    }
+}

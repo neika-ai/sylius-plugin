@@ -1,0 +1,255 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Neika\SyliusPlugin\Tests\Unit\Command;
+
+use Neika\SyliusPlugin\Channel\ChannelResolver;
+use Neika\SyliusPlugin\Channel\SiteKeyResolver;
+use Neika\SyliusPlugin\Command\NotifyAllCommand;
+use Neika\Sdk\DTO\SourceDocument;
+use Neika\Sdk\Enum\DocumentKind;
+use Neika\Sdk\Locale\LocaleMatcher;
+use Neika\SyliusPlugin\Locale\SyliusLocaleContext;
+use Neika\Sdk\Registry\DataSourceRegistry;
+use Neika\SyliusPlugin\Tests\Unit\Fixtures\ChannelCredentialsProviderDouble;
+use Neika\SyliusPlugin\Tests\Unit\Fixtures\ChannelFixtureFactory;
+use Neika\SyliusPlugin\Tests\Unit\Fixtures\RecordingCatalogChangeNotifier;
+use Neika\SyliusPlugin\Tests\Unit\Fixtures\RecordingDataSource;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+use Sylius\Component\Channel\Repository\ChannelRepositoryInterface;
+use Sylius\Component\Locale\Context\LocaleContextInterface;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Console\Tester\CommandTester;
+
+class NotifyAllCommandTest extends TestCase
+{
+    #[DataProvider('provideRequestedLocales')]
+    public function testTheRequestedLocaleIsAnnouncedInTheShopSpelling(?string $requested, array $expected): void
+    {
+        $source = new RecordingDataSource('products');
+        $command = $this->createCommand($source, ['cs_CZ', 'en_US']);
+
+        $exitCode = $command->__invoke($this->createStyle(), 'products', $requested);
+
+        self::assertSame(Command::SUCCESS, $exitCode);
+        self::assertSame($expected, $source->queriedLocales);
+    }
+
+    /**
+     * @return iterable<string, array{?string, list<string>}>
+     */
+    public static function provideRequestedLocales(): iterable
+    {
+        yield 'every channel locale' => [null, ['cs_CZ', 'en_US']];
+        yield 'empty option' => ['', ['cs_CZ', 'en_US']];
+        yield 'language only' => ['cs', ['cs_CZ']];
+        yield 'hyphen separated' => ['cs-CZ', ['cs_CZ']];
+        yield 'lower cased region' => ['cs_cz', ['cs_CZ']];
+    }
+
+    public function testAnUnservedLocaleAnnouncesNothing(): void
+    {
+        $source = new RecordingDataSource('products');
+        $command = $this->createCommand($source, ['cs_CZ']);
+        $output = new BufferedOutput();
+
+        $exitCode = $command->__invoke($this->createStyle($output), 'products', 'de_AT');
+
+        self::assertSame(Command::INVALID, $exitCode);
+        self::assertSame([], $source->queriedLocales);
+        self::assertStringContainsString('Locale "de_AT" is not served.', $output->fetch());
+    }
+
+    public function testASourceWithoutOwnLocalesFallsBackToTheChannel(): void
+    {
+        $source = new RecordingDataSource('products', []);
+        $command = $this->createCommand($source, ['cs_CZ', 'en_US']);
+
+        $exitCode = $command->__invoke($this->createStyle(), 'products');
+
+        self::assertSame(Command::SUCCESS, $exitCode);
+        self::assertSame(['cs_CZ', 'en_US'], $source->queriedLocales);
+    }
+
+    public function testTheSourceLocalesWinOverTheChannelOnes(): void
+    {
+        $source = new RecordingDataSource('products', ['en_US']);
+        $command = $this->createCommand($source, ['cs_CZ', 'en_US']);
+
+        $exitCode = $command->__invoke($this->createStyle(), 'products');
+
+        self::assertSame(Command::SUCCESS, $exitCode);
+        self::assertSame(['en_US'], $source->queriedLocales);
+    }
+
+    public function testTheConsoleOptionsReachTheAnnouncing(): void
+    {
+        $source = new RecordingDataSource('products');
+        $command = $this->createCommand($source, ['cs_CZ', 'en_US']);
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute(['--source' => 'products', '--locale' => 'cs']);
+
+        self::assertSame(Command::SUCCESS, $exitCode);
+        self::assertSame(['cs_CZ'], $source->queriedLocales);
+    }
+
+    public function testTheDocumentedOptionsAreDeclared(): void
+    {
+        $command = $this->createCommand(new RecordingDataSource('products'), ['cs_CZ']);
+
+        $options = $command->getDefinition()->getOptions();
+
+        self::assertSame(['source', 'locale', 'channel'], array_keys($options));
+    }
+
+    /**
+     * @param array<string, string> $providedSiteKeys
+     * @param list<?string>         $expectedNotifiedChannelCodes
+     * @param list<string>          $expectedQueriedLocales
+     */
+    #[DataProvider('provideChannelSiteKeyOutcomes')]
+    public function testTheChannelSiteKeyDecidesWhatIsAnnounced(
+        array $providedSiteKeys,
+        bool $isChannelEnabled,
+        bool $hasDocuments,
+        int $expectedExitCode,
+        string $expectedOutput,
+        array $expectedNotifiedChannelCodes,
+        array $expectedQueriedLocales,
+    ): void {
+        $documents = $hasDocuments ? [$this->createDocument('T-SHIRT-01')] : [];
+        $source = new RecordingDataSource('products', null, $documents);
+        $credentialsProvider = new ChannelCredentialsProviderDouble($providedSiteKeys);
+        $notifier = new RecordingCatalogChangeNotifier($this->createSiteKeyResolver($credentialsProvider), acceptsNotifications: false);
+        $channelResolver = $this->createChannelResolver('SK', ['sk_SK'], $isChannelEnabled);
+        $command = new NotifyAllCommand(
+            $this->createRegistry($source),
+            $notifier,
+            $channelResolver,
+            $this->createLocaleContext($channelResolver),
+            new LocaleMatcher(),
+            $credentialsProvider,
+        );
+        $output = new BufferedOutput();
+
+        $exitCode = $command->__invoke($this->createStyle($output), 'products', null, 'SK');
+
+        self::assertSame($expectedExitCode, $exitCode);
+        self::assertStringContainsString($expectedOutput, $output->fetch());
+        self::assertSame($expectedNotifiedChannelCodes, array_column($notifier->notifications, 3));
+        self::assertSame($expectedQueriedLocales, $source->queriedLocales);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, bool, bool, int, string, list<?string>, list<string>}>
+     */
+    public static function provideChannelSiteKeyOutcomes(): iterable
+    {
+        yield 'channel with a site announces with its own code' => [
+            ['SK' => 'sk-key'], true, true,
+            Command::FAILURE, 'a batch of 1 ids was not accepted', ['SK'], ['sk_SK'],
+        ];
+        yield 'channel with a site and an empty catalog succeeds' => [
+            ['SK' => 'sk-key'], true, false,
+            Command::SUCCESS, 'The whole catalog was announced', [], ['sk_SK'],
+        ];
+        yield 'channel without a site is refused' => [
+            ['CZ' => 'cz-key'], true, true,
+            Command::FAILURE, 'The channel "SK" has no site key', [], [],
+        ];
+        yield 'disabled channel is refused' => [
+            ['SK' => 'sk-key'], false, true,
+            Command::FAILURE, 'The channel "SK" is disabled', [], [],
+        ];
+    }
+
+    public function testAChannelWithoutAnIngestSecretIsRefused(): void
+    {
+        $source = new RecordingDataSource('products', null, [$this->createDocument('T-SHIRT-01')]);
+        $credentialsProvider = new ChannelCredentialsProviderDouble(['SK' => 'sk-key'], ingestSecret: '');
+        $notifier = new RecordingCatalogChangeNotifier($this->createSiteKeyResolver($credentialsProvider));
+        $channelResolver = $this->createChannelResolver('SK', ['sk_SK']);
+        $command = new NotifyAllCommand(
+            $this->createRegistry($source),
+            $notifier,
+            $channelResolver,
+            $this->createLocaleContext($channelResolver),
+            new LocaleMatcher(),
+            $credentialsProvider,
+        );
+        $output = new BufferedOutput();
+
+        $exitCode = $command->__invoke($this->createStyle($output), 'products', null, 'SK');
+
+        self::assertSame(Command::FAILURE, $exitCode);
+        self::assertStringContainsString('The channel "SK" has no ingest secret', $output->fetch());
+        self::assertSame([], $notifier->notifications);
+        self::assertSame([], $source->queriedLocales);
+    }
+
+    /**
+     * @param list<string> $channelLocales
+     */
+    private function createCommand(RecordingDataSource $source, array $channelLocales): NotifyAllCommand
+    {
+        $credentialsProvider = new ChannelCredentialsProviderDouble(['CZ' => 'site-key']);
+        $channelResolver = $this->createChannelResolver('CZ', $channelLocales);
+
+        return new NotifyAllCommand(
+            $this->createRegistry($source),
+            new RecordingCatalogChangeNotifier($this->createSiteKeyResolver($credentialsProvider)),
+            $channelResolver,
+            $this->createLocaleContext($channelResolver),
+            new LocaleMatcher(),
+            $credentialsProvider,
+        );
+    }
+
+    private function createLocaleContext(ChannelResolver $channelResolver): SyliusLocaleContext
+    {
+        return new SyliusLocaleContext(
+            $channelResolver,
+            $this->createStub(LocaleContextInterface::class),
+            new LocaleMatcher(),
+        );
+    }
+
+    private function createRegistry(RecordingDataSource $source): DataSourceRegistry
+    {
+        return new DataSourceRegistry([$source]);
+    }
+
+    private function createSiteKeyResolver(ChannelCredentialsProviderDouble $credentialsProvider): SiteKeyResolver
+    {
+        return new SiteKeyResolver($this->createStub(ChannelRepositoryInterface::class), $credentialsProvider, []);
+    }
+
+    /**
+     * @param list<string> $channelLocales
+     */
+    private function createChannelResolver(string $channelCode, array $channelLocales, bool $isChannelEnabled = true): ChannelResolver
+    {
+        $channel = (new ChannelFixtureFactory())->createChannel($channelCode, $channelLocales, $isChannelEnabled);
+
+        $channelResolver = $this->createStub(ChannelResolver::class);
+        $channelResolver->method('getChannel')->willReturn($channel);
+
+        return $channelResolver;
+    }
+
+    private function createDocument(string $id): SourceDocument
+    {
+        return new SourceDocument($id, 'https://shop.test/' . $id, $id, $id, DocumentKind::Product, [], '2026-09-15T00:00:00+00:00');
+    }
+
+    private function createStyle(?BufferedOutput $output = null): SymfonyStyle
+    {
+        return new SymfonyStyle(new ArrayInput([]), $output ?? new BufferedOutput());
+    }
+}

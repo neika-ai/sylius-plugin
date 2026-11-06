@@ -1,0 +1,5 @@
+{% set widget = hookable_metadata is defined ? hookable_metadata.context : _context %}
+{% set siteKey = neika_site_key() %}
+{% if siteKey %}
+{{ neika_widget_markup(widget.backend_url, siteKey, widget.widget_cdn_url ?? '', app.locale, widget.defer ?? true) }}
+{% endif %}

@@ -1,0 +1,19 @@
+{% trans_default_domain 'neika' %}
+{% if order.chatClickIds is defined %}
+    <div class="ui segment" data-testid="chatbot-from-chat">
+        <h4 class="ui header">{{ 'neika.admin.order.from_chat'|trans }}</h4>
+        {% if order.chatClickIds is empty %}
+            {{ 'neika.attribute_value.no'|trans }}
+        {% else %}
+            <div class="ui ordered list">
+                {% for clickId in order.chatClickIds %}
+                    <div class="item">
+                        <a href="{{ neika_click_url(clickId) }}" target="_blank" rel="noopener" data-testid="chatbot-conversation-link-{{ clickId }}">
+                            {{ 'neika.admin.order.open_conversation'|trans }}
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

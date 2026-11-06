@@ -1,0 +1,34 @@
+neika:
+    error:
+        invalid_channel: 'Požadovaný kanál neexistuje.'
+        ambiguous_taxon_tree: 'Kanál nemá nastavený menu taxon a obchod má více stromů kategorií, takže nelze určit, které kategorie mu patří.'
+    tool:
+        get_order_status:
+            description: 'Vyhledá aktuální stav objednávky podle jejího čísla a e-mailu zákazníka.'
+            form:
+                title: 'Stav objednávky'
+                order_number: 'Číslo objednávky'
+                email: 'E-mailová adresa'
+                submit: 'Zjistit stav'
+            not_found: 'Objednávka %number% nebyla pro zadaný e-mail nalezena. Zkontrolujte prosím číslo objednávky a e-mail použitý při nákupu.'
+            summary: 'Objednávka %number%: stav %state%, platba %paymentState%, doprava %shippingState%, položek %items%, celkem %total%.%tracking%'
+            tracking: ' Sledování zásilky: %codes%.'
+        get_product_availability:
+            description: 'Vrací aktuální cenu, měnu a skladovou dostupnost až 20 produktů podle jejich kódů.'
+            unknown: 'Produkt s kódem %code% nebyl nalezen.'
+            line_in_stock: '%code% — %name%: %price% %currency%, skladem.'
+            line_out_of_stock: '%code% — %name%: %price% %currency%, momentálně není skladem.'
+    source:
+        products:
+            description: 'Aktivní produkty prodejního kanálu včetně popisu, atributů, ceny a dostupnosti.'
+        categories:
+            description: 'Aktivní kategorie produktů prodejního kanálu včetně cesty kategorií a popisu.'
+        cms_pages:
+            description: 'Publikované CMS stránky obchodu.'
+    attribute_value:
+        'yes': 'ano'
+        'no': 'ne'
+    admin:
+        order:
+            from_chat: 'Z chatbota'
+            open_conversation: 'Otevřít konverzaci'

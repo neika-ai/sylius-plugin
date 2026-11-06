@@ -1,0 +1,27 @@
+{% trans_default_domain 'neika' %}
+{% set order = hookable_metadata.context.resource %}
+
+{% if order.chatClickIds is defined %}
+    <div class="card mb-3" data-testid="chatbot-from-chat">
+        <div class="card-header">
+            <div class="card-title">
+                {{ 'neika.admin.order.from_chat'|trans }}
+            </div>
+        </div>
+        <div class="card-body">
+            {% if order.chatClickIds is empty %}
+                {{ 'neika.attribute_value.no'|trans }}
+            {% else %}
+                <ol class="mb-0">
+                    {% for clickId in order.chatClickIds %}
+                        <li>
+                            <a href="{{ neika_click_url(clickId) }}" target="_blank" rel="noopener" data-testid="chatbot-conversation-link-{{ clickId }}">
+                                {{ 'neika.admin.order.open_conversation'|trans }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ol>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}

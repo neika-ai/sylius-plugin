@@ -1,0 +1,53 @@
+{
+    "name": "neika-ai/sylius-plugin",
+    "description": "Plug-and-play Sylius wrapper for the Neika chatbot tool-server: default tools, data sources and shop widget",
+    "type": "sylius-plugin",
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.1",
+        "ext-intl": "*",
+        "doctrine/collections": "^1.8 || ^2.1",
+        "doctrine/doctrine-bundle": "^2.13 || ^3.2 || ^4.0",
+        "doctrine/orm": "^2.20 || ^3.6 || ^4.0",
+        "liip/imagine-bundle": "^2.13",
+        "neika-ai/sdk": "^0.1",
+        "neika-ai/symfony-bundle": "^0.1",
+        "sylius/sylius": "^1.14 || ^2.2 || ^2.3@alpha",
+        "symfony/config": "^6.4 || ^7.0 || ^8.0",
+        "symfony/console": "^6.4 || ^7.0 || ^8.0",
+        "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
+        "symfony/event-dispatcher": "^6.4 || ^7.0 || ^8.0",
+        "symfony/http-client": "^6.4 || ^7.0 || ^8.0",
+        "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
+        "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
+        "symfony/intl": "^6.4 || ^7.0 || ^8.0",
+        "symfony/translation": "^6.4 || ^7.0 || ^8.0",
+        "twig/twig": "^2.12 || ^3.3"
+    },
+    "require-dev": {
+        "monsieurbiz/sylius-cms-page-plugin": "^2.2",
+        "nyholm/psr7": "^1.8",
+        "phpunit/phpunit": "^11.0 || ^12.0 || ^13.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Neika\\SyliusPlugin\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Neika\\SyliusPlugin\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "symfony/flex": false,
+            "symfony/runtime": false,
+            "php-http/discovery": false,
+            "dealerdirect/phpcodesniffer-composer-installer": false
+        }
+    }
+}
