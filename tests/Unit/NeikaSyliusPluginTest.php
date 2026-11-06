@@ -149,7 +149,7 @@ class NeikaSyliusPluginTest extends TestCase
     public static function provideValidChannelSiteKeys(): iterable
     {
         yield 'literal keys' => [['CZ_WEB' => 'cz-key', 'SK_WEB' => 'sk-key']];
-        yield 'env placeholders' => [['CZ_WEB' => '%env(CHATBOT_SITE_KEY_CZ)%']];
+        yield 'env placeholders' => [['CZ_WEB' => '%env(NEIKA_CHATBOT_SITE_KEY_CZ)%']];
         yield 'hyphenated channel codes are not normalized' => [['cz-web' => 'cz-key']];
         yield 'numeric channel codes' => [[123 => 'numeric-key']];
         yield 'empty site key' => [['CZ_WEB' => '']];
@@ -332,15 +332,15 @@ class NeikaSyliusPluginTest extends TestCase
         $bundle = new NeikaSyliusPlugin();
         $bundle->build($container);
         $bundle->getContainerExtension()->load([[
-            'channel_site_keys' => ['CZ_WEB' => 'cz-key', 'SK_WEB' => '%env(CHATBOT_TEST_SITE_KEY_SK)%'],
+            'channel_site_keys' => ['CZ_WEB' => 'cz-key', 'SK_WEB' => '%env(NEIKA_CHATBOT_TEST_SITE_KEY_SK)%'],
         ]], $container);
         $this->keepOnlyWiredBundleServices($container, $this->getWiredServiceIds());
-        $_ENV['CHATBOT_TEST_SITE_KEY_SK'] = 'sk-key';
+        $_ENV['NEIKA_CHATBOT_TEST_SITE_KEY_SK'] = 'sk-key';
 
         try {
             $container->compile(resolveEnvPlaceholders: true);
         } finally {
-            unset($_ENV['CHATBOT_TEST_SITE_KEY_SK']);
+            unset($_ENV['NEIKA_CHATBOT_TEST_SITE_KEY_SK']);
         }
 
         $this->setShopServices($container);

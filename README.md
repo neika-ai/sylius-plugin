@@ -1,34 +1,20 @@
 # Neika Sylius Plugin
 
-Sylius plugin for the Neika chatbot: shop tools, catalog sources and the shop widget. Sylius 1.14 and 2.x.
+Sylius plugin for the [Neika](https://neika.ai) chatbot: shop tools, catalog sources and the shop widget. Sylius 1.14 and 2.x.
 
-Tool-server mechanics (endpoints, error format, locales, your own tools and sources) live in the
-[Symfony bundle README](https://github.com/neika-ai/symfony-bundle) — this page covers the Sylius pieces.
+Built on [`neika-ai/symfony-bundle`](https://github.com/neika-ai/symfony-bundle). Its README covers the endpoints,
+error format, locales, and adding your own tools and sources.
 
 ## Features
 
-- [Connect from the dashboard](#connect-from-the-dashboard) — one click pairs a channel; nobody copies a secret
-- [Credentials](#credentials) — env for a single site, one site per channel, or your own store
-- [Shipped tools](#shipped-tools) — order status and product availability in the chat
-- [Shipped sources](#shipped-sources) — products, categories and CMS pages, with links on each channel's domain
-- [Catalog change notifications](#catalog-change-notifications) — saved products reach the chatbot without waiting for the nightly sync
+- [Shipped tools](#shipped-tools) — the chat answers order status and stock from live shop data
+- [Shipped sources](#shipped-sources) — products, categories and CMS pages, linked on each channel's own domain
+- [Catalog change notifications](#catalog-change-notifications) — a saved product reaches the chat without waiting for the nightly sync
 - [Widget](#widget) — the chat on every shop page, no template edits
-- [Chat click tracking](#chat-click-tracking) — visits and revenue from chat links
+- [Connect from the dashboard](#connect-from-the-dashboard) — one click pairs a channel; nobody copies a secret
+- [Credentials](#credentials) — one site for the whole shop, or one per channel
+- [Chat click tracking](#chat-click-tracking) — revenue from orders that started in the chat
 - [Orders from chat](#orders-from-chat) — open the conversation behind an order from its admin page
-
-## Requirements
-
-| Package | Constraint |
-|---|---|
-| `php` | `^8.1` |
-| `ext-intl` | `*` |
-| `sylius/sylius` | `^1.14 \|\| ^2.2 \|\| ^2.3@alpha` |
-| `doctrine/orm` | `^2.20 \|\| ^3.6 \|\| ^4.0` |
-| `symfony/*` | `^6.4 \|\| ^7.0 \|\| ^8.0` |
-
-> **On Sylius 1.14 the widget uses a deprecated hook.** 1.14 has no Twig Hooks, so the widget is a `sylius_ui`
-> template block on `sylius.shop.layout.javascripts`. The container build reports `sylius/ui-bundle`
-> deprecations for it: expected. Everything else works the same on both lines.
 
 ## Install
 
@@ -38,7 +24,7 @@ composer require neika-ai/sylius-plugin
 
 ## Usage
 
-1. `config/bundles.php` — register the Symfony bundle and this plugin (Symfony Flex already did this if it's on):
+1. `config/bundles.php` (Symfony Flex already did this if it's on):
 
    ```diff
     return [
@@ -48,18 +34,17 @@ composer require neika-ai/sylius-plugin
     ];
    ```
 
-2. `config/routes/neika.yaml` — the routes live in the Symfony bundle, `/chatbot/pair` included:
+2. `config/routes/neika.yaml`:
 
    ```yaml
    neika:
        resource: '@NeikaSymfonyBundle/config/routes.php'
    ```
 
-   **Keep them off the shop's `_locale` prefix.** The backend calls `/chatbot/v1/*` on the shop host; the
-   dashboard's Connect button opens `/chatbot/pair`.
+   **Keep these routes off the shop's `_locale` prefix.** The backend calls `/chatbot/v1/*` on the shop host, and
+   the dashboard's Connect button opens `/chatbot/pair`.
 
-3. `config/packages/security.yaml` — guard `/chatbot/v1`, **before** the Sylius `shop` firewall (firewalls match in
-   order and `shop` matches `^/`):
+3. `config/packages/security.yaml`. **Put the firewall before the Sylius `shop` firewall**, because `shop` matches `^/`:
 
    ```diff
     security:
@@ -82,107 +67,97 @@ composer require neika-ai/sylius-plugin
    +        - { path: ^/chatbot/v1, roles: ROLE_CHATBOT_BACKEND }
    ```
 
-   `/chatbot/pair` stays outside this firewall — it's a browser redirect, not a backend call.
-
-4. `config/packages/neika.yaml` — where the backend is:
+4. `config/packages/neika.yaml`:
 
    ```yaml
    neika:
-       backend_url: '%env(CHATBOT_BACKEND_URL)%'
+       backend_url: '%env(NEIKA_CHATBOT_BACKEND_URL)%'
    ```
 
-5. `.env.local` — the backend URL, plus the credentials unless you [connect from the dashboard](#connect-from-the-dashboard):
+5. `.env.local`. Skip the three credentials if you [connect from the dashboard](#connect-from-the-dashboard):
 
    ```diff
-   +CHATBOT_BACKEND_URL=https://neika.ai
-   +CHATBOT_API_SECRET=change-me
-   +CHATBOT_INGEST_SECRET=change-me
-   +CHATBOT_SITE_KEY=site-key
+   +NEIKA_CHATBOT_BACKEND_URL=https://neika.ai
+   +NEIKA_CHATBOT_API_SECRET=change-me
+   +NEIKA_CHATBOT_INGEST_SECRET=change-me
+   +NEIKA_CHATBOT_SITE_KEY=site-key
    ```
 
 ## Configuration
 
-The connection and the widget belong to the Symfony bundle. Defaults:
+The `neika:` options belong to the Symfony bundle; see its [Configuration](https://github.com/neika-ai/symfony-bundle#configuration).
+Two of them work differently here:
 
-```yaml
-neika:
-    backend_url: ''
-    widget:
-        enabled: true
-        cdn_url: ''
-        defer: true
-```
+| Option | In this plugin |
+|---|---|
+| `widget.enabled` | `false` means the plugin injects no widget. |
+| `widget.defer` | `false` means a plain `<script src>` without `defer`. |
 
-| Option | Default | Meaning |
-|---|---|---|
-| `backend_url` | `''` | Neika origin; the widget, notifications, reports and pairing talk to it. Empty → nothing is sent |
-| `widget.enabled` | `true` | `false` → no widget. Literal boolean, no `%env()%` |
-| `widget.cdn_url` | `''` | where `chat.js` loads from. Empty → `https://neika.b-cdn.net/widget/v1/chat.js` |
-| `widget.defer` | `true` | `false` → plain `<script src>`, no `defer`. Literal boolean, no `%env()%` |
-
-> **Outside `dev`, a non-`https` `backend_url` is refused** and nothing is sent.
+> **Set both as literal booleans.** The plugin reads them before env vars resolve, so an `%env()%` value counts as `true`.
 
 ## Credentials
 
-**The widget needs only a site key.** Notifications and order reports also need an ingest secret (outbound:
-`Authorization: Bearer <site key>.<ingest secret>`); the backend calls `/chatbot/v1` with the API secret. Per
-channel, the first match wins:
+**The widget needs only a site key.** Catalog notifications and order reports also need an ingest secret. Each
+channel takes the first row that matches:
 
 | Channel | Site key | Ingest secret |
 |---|---|---|
 | [paired](#connect-from-the-dashboard) | stored on the channel | stored on the channel |
-| in `channel_site_keys` | the entry | `CHATBOT_INGEST_SECRET` |
-| in `channel_site_keys` with `''` | none → no widget, no notifications | — |
-| any other | `CHATBOT_SITE_KEY` | `CHATBOT_INGEST_SECRET` |
+| listed in `channel_site_keys` | the listed key | `NEIKA_CHATBOT_INGEST_SECRET` |
+| listed in `channel_site_keys` with `''` | none, so no widget and no reports | none |
+| any other | `NEIKA_CHATBOT_SITE_KEY` | `NEIKA_CHATBOT_INGEST_SECRET` |
 
-Site key without an ingest secret → the widget renders; notifications and order reports are skipped.
+A site key without an ingest secret still shows the widget. Notifications and order reports are skipped.
 
-The backend's API secret is accepted when it matches `CHATBOT_API_SECRET` or any paired channel's secret.
+The backend's calls to `/chatbot/v1` are accepted with `NEIKA_CHATBOT_API_SECRET` or the API secret of any paired channel.
 
 > **A paired API secret works on every channel**, not only on the channels it was paired with.
 
 ### One site per channel
 
 **Map channel codes to site keys when each channel is its own site on the backend.**
-`config/packages/neika_sylius.yaml`:
+
+`config/packages/neika_sylius.yaml`
 
 ```yaml
 neika_sylius:
     channel_site_keys:
-        CZ_WEB: '%env(CHATBOT_SITE_KEY_CZ)%'
-        SK_WEB: '%env(CHATBOT_SITE_KEY_SK)%'
+        CZ_WEB: '%env(NEIKA_CHATBOT_SITE_KEY_CZ)%'
+        SK_WEB: '%env(NEIKA_CHATBOT_SITE_KEY_SK)%'
         DE_WEB: 'pk_live_de'
 ```
 
 | Option | Default | Meaning |
 |---|---|---|
-| `channel_site_keys` | `{}` | `{ <channel code>: <site key> }`; codes verbatim (`cz-web` stays `cz-web`), values literal or `%env()%` |
+| `channel_site_keys` | `{}` | `{ <channel code>: <site key> }`. Codes are taken as written (`cz-web` stays `cz-web`). Values are literal or `%env()%`. |
 
-- **An entry wins over `CHATBOT_SITE_KEY`.** `''` opts the channel out — it never falls back.
-- `CHATBOT_SITE_KEY` then serves only unmapped channels; leave it empty when every channel is mapped.
+- **A listed channel never falls back to `NEIKA_CHATBOT_SITE_KEY`.** `''` turns the chatbot off for that channel.
+- Every channel listed → leave `NEIKA_CHATBOT_SITE_KEY` empty.
 
 ### Your own store
 
-Alias `ChannelCredentialsProviderInterface` to your service in `config/services.yaml`:
+Alias `ChannelCredentialsProviderInterface` to your service:
+
+`config/services.yaml`
 
 ```yaml
 services:
     Neika\SyliusPlugin\Credentials\ChannelCredentialsProviderInterface: '@App\Chatbot\VaultCredentialsProvider'
 ```
 
-The Symfony bundle's `CredentialsProviderInterface` points at the same service. To make Connect store into it too,
-also implement `Neika\SymfonyBundle\Contract\CredentialsWriterInterface` and alias it the same way.
+The Symfony bundle's `CredentialsProviderInterface` then points at the same service. For Connect to save into your
+store too, also implement `Neika\SymfonyBundle\Contract\CredentialsWriterInterface` and alias it the same way.
 
-> **Alias the Sylius interface, not only the Symfony one.** Aliasing just `CredentialsProviderInterface` fails the
-> container build: Sylius resolves credentials per channel.
+> **Alias the Sylius interface.** Aliasing only `CredentialsProviderInterface` fails the container build, because
+> Sylius looks credentials up per channel.
 
 ## Connect from the dashboard
 
-**Click Connect on the tool-server connection in the chatbot dashboard** — the shop generates its secrets, sends them
-to `backend_url` and stores them on the connection's channels (none listed → the channel of the shop host).
-Nothing to copy. A new key works at once, no cache clear.
+**Click Connect on the tool-server connection in the chatbot dashboard.** The shop makes its secrets, sends them to
+`backend_url` and stores them on the connection's channels. A connection that lists no channels pairs the channel of
+the shop host. The new key works at once, no cache clear.
 
-1. `src/Entity/Channel/Channel.php` — let the channel store credentials:
+1. `src/Entity/Channel/Channel.php`:
 
    ```diff
    +use Neika\SyliusPlugin\Credentials\NeikaChannelInterface;
@@ -195,7 +170,7 @@ Nothing to copy. A new key works at once, no cache clear.
    +    use NeikaChannelTrait;
    ```
 
-   > **Use `NeikaChannelInterface` only together with `NeikaChannelTrait`.** The lookup relies on the trait's fields.
+   > **Use `NeikaChannelInterface` only together with `NeikaChannelTrait`.** The lookup queries the trait's columns.
 
 2. Add the `neika_site_key`, `neika_api_secret_hash` and `neika_ingest_secret` columns:
 
@@ -204,124 +179,119 @@ Nothing to copy. A new key works at once, no cache clear.
    bin/console doctrine:migrations:migrate
    ```
 
-3. Admin → Channels → set **Hostname** to the host of the connection's base URL (`shop.cz` for
-   `https://shop.cz`). Case doesn't matter; `www.shop.cz` ≠ `shop.cz`.
+3. Admin → Channels: set **Hostname** to the host of the connection's base URL (`shop.cz` for `https://shop.cz`).
+   Case doesn't matter, `www.` does: `www.shop.cz` ≠ `shop.cz`.
 
-   **Pairing several channels on different hosts?** Every channel's hostname must be on a verified domain of the
-   website (`shop.sk` or `eshop.shop.sk` for `shop.sk`), else nothing is saved.
+   **Pairing several channels?** Each channel's hostname must be on a verified domain of the website
+   (`shop.sk` or `eshop.shop.sk` for `shop.sk`). Otherwise nothing is saved.
 
 4. Click **Connect** in the dashboard. You land back there when it's done.
 
-Adding the trait changes nothing until a channel is paired: unpaired channels keep their configured credentials.
+Channels stay on their configured credentials until they're paired.
 
-> **Unset `CHATBOT_API_SECRET` once every channel is paired.** It stays valid otherwise.
+> **Unset `NEIKA_CHATBOT_API_SECRET` once every channel is paired.** It stays valid otherwise.
 
-> The API secret is stored only as a SHA-256 hash; the ingest secret is stored as-is (it has to be sent).
-> The trait maps the columns with Doctrine attributes and annotations. Channel mapped in XML → map
-> `neikaSiteKey` (`string`, 64), `neikaApiSecretHash` (`string`, 64, fixed) and `neikaIngestSecret`
-> (`string`, 128), all nullable, yourself.
+> The API secret is stored only as a SHA-256 hash. The ingest secret is stored as is, since it has to be sent.
+> The trait maps the columns with Doctrine attributes and annotations. If your channel is mapped in XML, map
+> `neikaSiteKey` (`string`, 64), `neikaApiSecretHash` (`string`, 64, fixed) and `neikaIngestSecret` (`string`, 128),
+> all nullable, yourself.
 
-What can go wrong:
+What can go wrong in this plugin (the rest is in the bundle's [error table](https://github.com/neika-ai/symfony-bundle#connect-from-the-dashboard)):
 
 | Situation | Result |
 |---|---|
 | Channel entity without the trait | 409 page: paste the credentials into the shop's configuration |
-| `backend_url` empty, or not `https` outside `dev` | 400 `backend_url_refused`, nothing sent |
-| Shop host's channel has no hostname | 400 `pairing_hostname_missing`, nothing sent |
+| The shop host's channel has no hostname | 400 `pairing_hostname_missing`, nothing sent |
 | A paired channel has no hostname | 400 `pairing_hostname_missing`, nothing saved |
-| Connection's base URL on another host | 400 `pairing_wrong_shop`, nothing saved |
-| A paired channel's hostname not on a verified domain | 400 `pairing_wrong_shop`, nothing saved |
-| Connection names a channel code the shop doesn't have | 400 `pairing_unsupported`, nothing saved |
-| Link older than 10 minutes, or used | 400 `pairing_not_found` |
+| A paired channel's hostname isn't on a verified domain | 400 `pairing_wrong_shop`, nothing saved |
+| The connection names a channel code the shop doesn't have | 400 `pairing_unsupported`, nothing saved |
 
-A failed Connect is retried by clicking Connect again.
+Click Connect again to retry.
 
 ## Shipped tools
 
-The backend calls these mid-conversation for live data:
+The backend calls these mid-conversation:
 
-- `get_order_status` — order state, payment and shipping state, tracking codes, item count and total;
-  requires the order number and the customer e-mail (uniform "not found" otherwise).
-- `get_product_availability` — price, currency and stock for up to 20 variant codes; returns a
-  `products` block for the widget.
+- `get_order_status`: order state, payment and shipping state, tracking codes, item count and total. Needs the
+  order number and the customer's e-mail. A wrong e-mail, an unknown number and an unplaced cart all get the same
+  "not found". A pasted number with spaces or dashes is found too.
+  The order number, e-mail and tracking codes are [personal data](https://github.com/neika-ai/sdk#personal-data-in-tools).
+- `get_product_availability`: price, currency and stock for up to 20 variant codes, plus a `products` block for
+  the widget.
 
-Add your own tool → [Symfony bundle README](https://github.com/neika-ai/symfony-bundle#add-a-tool).
-
-**Their texts ship in cs, en, de, sk, pl, hu, ro, sl, hr and ru**, in the `neika` domain; a missing language
-falls back to the channel's default locale. Override or add one → [Translations](https://github.com/neika-ai/symfony-bundle#translations).
+**Their texts ship in cs, en, de, sk, pl, hu, ro, sl, hr and ru**, in the `neika` domain. A missing language falls
+back to the channel's default locale. To override one or add a language, see
+[Translations](https://github.com/neika-ai/symfony-bundle#translations).
 
 ## Shipped sources
 
-The backend pulls these in bulk and ingests them into its retrieval index:
+The backend pulls these in bulk into its search index:
 
-- `products` — indexable channel products per locale with `ProductMetadata` (`code, name, url,
-  imageUrl, priceMinor, currency, inStock, taxons, taxonNames, attributes, associations`); `taxons` carries taxon
-  **codes**, `taxonNames` their names in the requested locale; the names and main taxon path also live in the
-  document text. `associations` = type name → `[{code, name}]`, one sellable variant per associated product; the key
-  is absent when none remain.
-  > Saving the product's own fields sends it right away. Editing only its associated products waits for the next bulk pull.
-- `categories` — enabled taxons of the channel tree per locale (`code, name, path, url, productCount`).
-  - Tree = the channel's **menu taxon** subtree. A taxon is served only when every ancestor *below* the
-    tree top is enabled, so a disabled branch never leaks its children.
-  - The tree top (menu taxon, or tree root when there is none) never disqualifies what is beneath it.
-    Disabling it empties the channel's menu without emptying this source.
-  - The menu taxon is served as a category document; a bare tree root is not.
-  - A channel with no menu taxon serves the shop's only taxon tree. With several trees it is refused
-    `409 ambiguous_taxon_tree`.
-  - `productCount` counts the taxon's whole subtree, only products passing `ProductIndexabilityInterface` —
-    so it agrees with the category page (`include_all_descendants: true`) and the chatbot.
-- `cms_pages` — enabled CMS pages of the channel per locale, from Monsieur Biz CMS or BitBag CMS (registered only
-  when one of the plugins is installed).
+- `products`: one document per variant, for indexable products of the channel, per locale.
+  - Metadata: `code` (variant), `productCode`, `name`, `url`, `imageUrl`, `priceMinor`, `currency`, `inStock`,
+    `taxons` (taxon codes), `taxonNames` (in the requested locale), `attributes`, `options`, `associations`.
+  - `associations`: association type name → `[{code, name}]`, one sellable variant per associated product. Left
+    out when there are none.
+  - Text: name, short description, description, attributes, options, taxon names and the main taxon path.
+- `categories`: enabled taxons of the channel's tree, per locale (`code, name, path, url, productCount`).
+  - The tree is the channel's **menu taxon** and everything under it. The menu taxon is served too.
+  - Without a menu taxon, the tree is the shop's only taxon tree, root excluded. A shop with several trees
+    answers `409 ambiguous_taxon_tree`; set a menu taxon on each channel.
+  - A disabled taxon hides its whole branch. Disabling the menu taxon itself hides only the menu taxon.
+  - `productCount` counts the taxon's whole subtree, only products that pass `ProductIndexabilityInterface`.
+- `cms_pages`: enabled CMS pages of the channel, per locale. Registered only when
+  [Monsieur Biz CMS](https://github.com/monsieurbiz/SyliusCmsPagePlugin) (pages inside their publish dates) or
+  [BitBag CMS](https://github.com/BitBagCommerce/SyliusCmsPlugin) is installed.
 
-**Every absolute URL a source or tool emits is built on the resolved channel's hostname**, not the
-request host. A read for `channel=X` returns links on X's domain; only the host is swapped.
+**Every link a source or tool sends is on the channel's own hostname**, whatever host the request came in on.
 
-- Channel hostname empty → the request host stands in.
-- Sylius stores no per-channel *scheme* or *port*, so both come from the request context. Set
-  `router.request_context.scheme` (and `host`) for `notify-all` — it runs outside a request and would
-  otherwise emit `http://`. A shop on a non-standard port carries that port into every channel's URLs.
+- A channel without a hostname gets the request host.
+- Sylius stores no scheme or port per channel, so both come from the request. For `neika:notify-all`, which runs
+  outside a request, set `router.request_context.scheme` and `host`, or links come out as `http://`.
 
-> `imageUrl`: a `liip_imagine` **`cache` resolver** in front of `web_path` memoises the finished
-> absolute URL under a host-less key — the first channel read then feeds its host to every other
-> channel. Keep the chatbot's image filter on a host-agnostic resolver.
+> `imageUrl` uses the `sylius_shop_product_original` filter. **Don't put a `liip_imagine` `cache` resolver in front
+> of `web_path`.** It caches the absolute URL without the host, so every channel gets the first channel's host.
 
 ### Extension points
 
-Both govern the `products` source; redefine the container alias in `services.yaml` to replace them:
+Replace one by redefining its container alias in `config/services.yaml`:
 
-| Interface | Default | Purpose |
+| Interface | Default | Decides |
 |---|---|---|
-| `ProductViewFactoryInterface` | `ProductViewFactory` | price, stock, image and URL of an indexed product |
-| `ProductIndexabilityInterface` | `ProductIndexability` | which products the source serves (enabled, in the channel, at least one priced enabled variant) |
-
-Add your own source → [Symfony bundle README](https://github.com/neika-ai/symfony-bundle#add-a-data-source).
+| `ProductIndexabilityInterface` | `ProductIndexability` | Which variants `products` serves: enabled, product enabled and in the channel, priced in the channel. |
+| `ProductViewFactoryInterface` | `ProductViewFactory` | Price, stock, image and URL in `products`. |
+| `ChannelTaxonRootsInterface` | `ChannelTaxonRoots` | Which trees `categories` serves for a channel without a menu taxon. The default refuses to pick one of several trees; return every root if your channels share one taxonomy. |
 
 ## Catalog change notifications
 
-**These keep the backend's ingested sources fresh.** Saving a `Product`, `ProductTranslation`, `Taxon`
-or `TaxonTranslation` collects the changed ids; one `POST {backend_url}/api/v1/catalog/changes`
-per `(source, locale, site)` is sent after the response (`kernel.terminate`, `ConsoleEvents::TERMINATE`), one at a
-time, max 500 ids per request.
+**Saved catalog entries reach the backend after the response is sent**, so the next chat sees them. Nothing to set up.
 
-> **The backend accepts notifications only from an active site.** A draft site answers 401 — activate it
-> in the dashboard first. The same goes for order reports and the widget.
-
-| Saved entity | Announces |
+| Added, saved or deleted | Announces |
 |---|---|
-| `ProductTranslation` | its own locale |
-| `TaxonTranslation` | `categories` for its own locale |
-| `Product` | every locale of `sylius_locale` |
-| `Taxon` | `categories` for every locale, no product fan-out |
+| `Product`, `ProductVariant`, `ChannelPricing` | the product's variants, in every shop locale |
+| `ProductTranslation` | the product's variants, in its own locale |
+| `Taxon` | the category, in every shop locale; not its products |
+| `TaxonTranslation` | the category, in its own locale |
 
-**Recipients: every enabled channel serving the locale.** Channels with the same site key share one request.
+> Editing only a product's associated products waits for the next bulk pull.
 
-- Channel without a site key or ingest secret → skipped, warning.
-- Channel mapped to `''` → skipped, debug record.
-- Locale no enabled channel serves → sent nowhere.
-- `backend_url` empty → nothing sent.
-- Backend asks to retry within 2 s (rate limit) → the batch is sent once more.
-- Backend fails or can't queue for longer → logged warning; the shop request is never affected. A dropped
-  notification costs at most one nightly sync of staleness.
+**Each change goes to every enabled channel that serves the locale.** Channels with the same site key share one request.
+Requests go one at a time, at most 500 ids each.
+
+> **The backend accepts notifications only from an active site.** A draft site answers 401, so activate it in the
+> dashboard first. Order reports and the widget need an active site too.
+
+| Situation | Result |
+|---|---|
+| Channel without a site key or ingest secret | skipped, warning logged |
+| Channel listed with `''` | skipped, debug record |
+| No enabled channel serves the locale | sent nowhere |
+| `backend_url` empty | nothing sent |
+| Backend asks to retry within 2 s | sent once more |
+| Backend fails, or asks to wait longer | warning logged; the next nightly sync catches up |
+| Over 20,000 changed ids in one request or command | the rest is dropped, warning logged |
+
+The shop request never fails because of a notification.
 
 ### Re-announce everything
 
@@ -329,18 +299,18 @@ time, max 500 ids per request.
 bin/console neika:notify-all [--source=products|categories|cms_pages] [--locale=cs_CZ] [--channel=code]
 ```
 
-Re-announces the whole catalog of one channel to its site in 500-id batches, pausing 2 s between batches.
-A `429` or `503` → waits `Retry-After` and sends the same batch again, up to 5 times.
+Sends one channel's whole catalog to its site in batches of 500 ids, 2 s apart. A `429` or `503` waits `Retry-After`
+and sends the same batch again, up to 5 times.
 
-- **Pass `--channel` when no channel can be resolved from the CLI context.** Run it once per channel.
-- Disabled channel, or one without a site key or ingest secret → aborts.
-- Without `--locale`, the channel's locales are announced.
-- `--locale` must be an ICU-known locale (any spelling); an unknown or unserved locale aborts the run.
+- **Pass `--channel` when the CLI context resolves no channel.** Run it once per channel.
+- A disabled channel, or one without a site key or ingest secret, stops the run.
+- Without `--locale`, every locale of the channel is sent.
+- `--locale` takes any locale the channel serves, in any spelling (`cs-cz` works). Anything else stops the run.
 
 ## Widget
 
-When `widget.enabled` is true the plugin injects, via the `sylius_shop.base#javascripts` twig hook on
-Sylius 2 and the `sylius.shop.layout.javascripts` template block on Sylius 1.14:
+**Every shop page gets the widget**, through the `sylius_shop.base#javascripts` Twig hook on Sylius 2 and the
+`sylius.shop.layout.javascripts` template block on Sylius 1.14:
 
 ```html
 <script src="{widget.cdn_url}" defer></script>
@@ -348,10 +318,12 @@ Sylius 2 and the `sylius.shop.layout.javascripts` template block on Sylius 1.14:
 ```
 
 - The site key is the current channel's, looked up on every render (`neika_site_key()`).
-- **No site key → nothing renders**, neither script nor element.
-- `widget.defer: false` → `<script src="…">` without `defer`.
+- **No site key → nothing renders**, neither the script nor the element.
 
-Include the template yourself with a plain context:
+> On Sylius 1.14 the container build reports `sylius/ui-bundle` deprecations for the template block. That's
+> expected: 1.14 has no Twig Hooks.
+
+To place it yourself, include the template with a plain context:
 
 ```twig
 {% include '@NeikaSyliusPlugin/shop/widget.html.twig' with {
@@ -361,31 +333,29 @@ Include the template yourself with a plain context:
 } only %}
 ```
 
-The widget talks only to `backend_url`; it never calls `/chatbot/v1` itself.
-
 ## Chat click tracking
 
-**Visits and orders from chat links are reported for you.** No setup beyond `backend_url` and credentials.
+**Visits and orders from chat links are reported for you.** Nothing to set up beyond `backend_url` and credentials.
 
-- **Visit** → the Symfony bundle's [landing beacon](https://github.com/neika-ai/symfony-bundle#chat-click-tracking)
-  reports it, with the current channel's site key.
-- **Product page opened from a chat link** (`?neikaclid=…`) → the product is remembered in the session.
-  Last click per product wins, at most 20 products.
-- **Order placed with a remembered product** → reported after the response is sent: revenue of the matching
-  items (incl. tax and item discounts, excl. shipping), the order's currency, the order channel's site key.
-  Unpaid orders count — it's reported when placed.
-- **Any placed order resets the session**, with or without a chat product.
+- **Visit:** the Symfony bundle [reports it](https://github.com/neika-ai/symfony-bundle#chat-click-tracking) with the
+  current channel's site key.
+- **Product page opened from a chat link** (`?neikaclid=…`): the click is remembered in the session. The last click
+  per product wins, up to 20 products.
+- **Order placed with a remembered product:** reported after the response is sent, with the order channel's site
+  key. Revenue is the matching items' total, with tax and item discounts, without shipping, in the order's currency.
+  Unpaid orders count, since the report goes out when the order is placed.
+- **Any placed order clears the session**, with or without a chat product.
 
-> Only shop checkout is covered (`sylius.order.post_complete`). Orders completed through the API or your
-> own code aren't reported.
+> Only shop checkout is covered (`sylius.order.post_complete`). Orders completed through the API or your own code
+> aren't reported.
 
-Backend unreachable → logged warning; checkout is never affected. Non-https `backend_url` → skipped outside
-the `dev` env.
+Backend unreachable → warning logged; checkout never fails. A non-https `backend_url` is skipped outside `dev`.
 
 ## Orders from chat
 
-**Open the chat conversation behind an order from its admin page.** Add the interface and trait to your
-`Order` entity:
+**Open the chat conversation behind an order from its admin page.** Add the interface and trait to your `Order` entity:
+
+`src/Entity/Order/Order.php`
 
 ```diff
 +use Neika\SyliusPlugin\Attribution\ChatAttributedOrderInterface;
@@ -405,18 +375,17 @@ bin/console doctrine:migrations:diff
 bin/console doctrine:migrations:migrate
 ```
 
-The order keeps the click id (`neikaclid`) of every chat link that led to one of its products, oldest click
-first. The order detail shows a **From chatbot** box, last in the right column:
+The order keeps the click id of every chat link that led to one of its products, oldest first. The order detail
+shows a **From chatbot** box at the bottom of the right column:
 
-- **Chat order** → a numbered list, one **Open conversation** link per click, to the conversation in the
-  Neika console.
-- **Other orders** → `no`.
+- Chat order → a numbered list with one **Open conversation** link per click, to the conversation in the Neika console.
+- Any other order → `no`.
 
-> The trait maps the column with Doctrine attributes and annotations. Order mapped in XML → map
+> The trait maps the column with Doctrine attributes and annotations. If your order is mapped in XML, map
 > `chatClickIds` (`json`, nullable) yourself.
 
-> Overriding `@SyliusAdmin/Order/show.html.twig` on Sylius 1 drops the sidebar blocks. Include the field
-> yourself: `{% include '@NeikaSyliusPlugin/admin/order/from_chat.html.twig' %}`.
+> Overriding `@SyliusAdmin/Order/show.html.twig` on Sylius 1 drops the sidebar blocks. Include the box yourself:
+> `{% include '@NeikaSyliusPlugin/admin/order/from_chat.html.twig' %}`.
 
 ## License
 

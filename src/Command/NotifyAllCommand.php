@@ -26,7 +26,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'neika:notify-all',
-    description: 'Re-notifies the chatbot backend about every catalog document of every served locale.',
+    description: 'Announces the whole catalog of one channel to the chatbot backend.',
 )]
 class NotifyAllCommand extends Command
 {
@@ -46,7 +46,7 @@ class NotifyAllCommand extends Command
         $this
             ->addOption('source', null, InputOption::VALUE_REQUIRED, 'Only this catalog source (products, categories, cms_pages).')
             ->addOption('locale', null, InputOption::VALUE_REQUIRED, 'Only this locale code.')
-            ->addOption('channel', null, InputOption::VALUE_REQUIRED, 'Channel code to read the catalog for; defaults to the context channel.');
+            ->addOption('channel', null, InputOption::VALUE_REQUIRED, 'Channel code. Required when the CLI context resolves no channel.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -75,7 +75,7 @@ class NotifyAllCommand extends Command
         $missingConfigurationKeys = $this->catalogChangeNotifier->getMissingConfigurationKeys();
         if ($missingConfigurationKeys !== []) {
             $io->error(sprintf(
-                'The chatbot backend is not configured, nothing can be announced. Set: %s.',
+                'The chatbot backend isn\'t configured. Set %s.',
                 implode(', ', $missingConfigurationKeys),
             ));
 
@@ -130,13 +130,13 @@ class NotifyAllCommand extends Command
 
         $isEnabled = $channel->isEnabled();
         if (!$isEnabled) {
-            return sprintf('The channel "%s" is disabled, its catalog is not announced.', $channelCode);
+            return sprintf('The channel "%s" is disabled. Nothing was announced.', $channelCode);
         }
 
         $siteCredentials = $this->credentialsProvider->findForChannel($channel);
         if ($siteCredentials === null) {
             return sprintf(
-                'The channel "%s" has no site key, nothing can be announced. Pair it from the chatbot dashboard or set: channel_site_keys.%s or CHATBOT_SITE_KEY.',
+                'The channel "%s" has no site key. Connect it from the chatbot dashboard, or set channel_site_keys.%s or NEIKA_CHATBOT_SITE_KEY.',
                 $channelCode,
                 $channelCode,
             );
@@ -145,7 +145,7 @@ class NotifyAllCommand extends Command
         $hasIngestSecret = $siteCredentials->hasIngestSecret();
         if (!$hasIngestSecret) {
             return sprintf(
-                'The channel "%s" has no ingest secret, nothing can be announced. Pair it from the chatbot dashboard or set: CHATBOT_INGEST_SECRET.',
+                'The channel "%s" has no ingest secret. Connect it from the chatbot dashboard, or set NEIKA_CHATBOT_INGEST_SECRET.',
                 $channelCode,
             );
         }
