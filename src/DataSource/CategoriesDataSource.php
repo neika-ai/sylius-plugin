@@ -172,8 +172,6 @@ class CategoriesDataSource implements ChatbotDataSourceInterface
         $queryBuilder->andWhere('taxon.id IS NULL');
     }
 
-
-
     private function excludeDisabledBranches(
         QueryBuilder $queryBuilder,
         string $taxonClassName,

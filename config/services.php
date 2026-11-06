@@ -20,7 +20,6 @@ return function (ContainerConfigurator $configurator): void {
     $services->load('Neika\\SyliusPlugin\\', __DIR__ . '/../src/')
         ->exclude([
             __DIR__ . '/../src/DTO',
-            __DIR__ . '/../src/Enum',
             __DIR__ . '/../src/Exception',
             __DIR__ . '/../src/Tool/DTO',
             __DIR__ . '/../src/DataSource/CmsPagesDataSource.php',

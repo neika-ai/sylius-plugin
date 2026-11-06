@@ -14,9 +14,8 @@ class AmbiguousChannelTaxonTreeException extends ChatbotApiException
     {
         parent::__construct(
             sprintf(
-                'Channel "%s" has no menu taxon and the shop has more than one taxon tree,'
-                . ' so the categories of this channel cannot be told apart from another channel\'s.'
-                . ' Set the channel\'s menu taxon in the Sylius admin.',
+                'Channel "%s" has no menu taxon and the shop has several taxon trees, so its categories'
+                . ' can\'t be told apart from another channel\'s. Set the channel\'s menu taxon in the Sylius admin.',
                 $channelCode ?? '',
             ),
             0,
