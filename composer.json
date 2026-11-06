@@ -1,6 +1,6 @@
 {
     "name": "neika-ai/sylius-plugin",
-    "description": "Plug-and-play Sylius wrapper for the Neika chatbot tool-server: default tools, data sources and shop widget",
+    "description": "Sylius plugin for the Neika chatbot: shop tools, catalog sources and the shop widget",
     "type": "sylius-plugin",
     "license": "MIT",
     "minimum-stability": "dev",
@@ -12,14 +12,13 @@
         "doctrine/doctrine-bundle": "^2.13 || ^3.2 || ^4.0",
         "doctrine/orm": "^2.20 || ^3.6 || ^4.0",
         "liip/imagine-bundle": "^2.13",
-        "neika-ai/sdk": "^0.1",
-        "neika-ai/symfony-bundle": "^0.1",
+        "neika-ai/sdk": "^0.2",
+        "neika-ai/symfony-bundle": "^0.2",
         "sylius/sylius": "^1.14 || ^2.2 || ^2.3@alpha",
         "symfony/config": "^6.4 || ^7.0 || ^8.0",
         "symfony/console": "^6.4 || ^7.0 || ^8.0",
         "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
         "symfony/event-dispatcher": "^6.4 || ^7.0 || ^8.0",
-        "symfony/http-client": "^6.4 || ^7.0 || ^8.0",
         "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
         "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
         "symfony/intl": "^6.4 || ^7.0 || ^8.0",
@@ -29,7 +28,8 @@
     "require-dev": {
         "monsieurbiz/sylius-cms-page-plugin": "^2.2",
         "nyholm/psr7": "^1.8",
-        "phpunit/phpunit": "^11.0 || ^12.0 || ^13.0"
+        "phpunit/phpunit": "^11.0 || ^12.0 || ^13.0",
+        "symfony/http-client": "^6.4 || ^7.0 || ^8.0"
     },
     "autoload": {
         "psr-4": {
