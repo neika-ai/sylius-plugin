@@ -19,7 +19,7 @@ class WidgetTemplateTest extends TestCase
     {
         $html = $this->renderWidget('');
 
-        self::assertStringContainsString('src="https://neika.b-cdn.net/widget/v1/chat.js"', $html);
+        self::assertStringContainsString('src="https://neika.b-cdn.net/widget/neika-chatbot.js"', $html);
     }
 
     public function testUsesCdnUrlWhenConfigured(): void

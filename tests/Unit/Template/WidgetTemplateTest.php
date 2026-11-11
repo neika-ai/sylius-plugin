@@ -101,7 +101,7 @@ class WidgetTemplateTest extends TestCase
         }
 
         return '<script src="https://cdn.test/chat.js" defer></script>' . "\n"
-            . '<ai-chat-widget site-key="' . $siteKey . '" locale="cs_CZ" backend-url="https://backend.test"></ai-chat-widget>';
+            . '<neika-chatbot-widget site-key="' . $siteKey . '" locale="cs_CZ" backend-url="https://backend.test"></neika-chatbot-widget>';
     }
 
     /**

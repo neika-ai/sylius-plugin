@@ -89,7 +89,7 @@ class PairControllerIntegrationTest extends TestCase
             self::BACKEND_URL,
             $provider,
         );
-        $request = Request::create('/chatbot/pair');
+        $request = Request::create('/neika-chatbot/pair');
 
         return $controller->__invoke($request, self::VALID_CODE);
     }

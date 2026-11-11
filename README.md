@@ -41,8 +41,8 @@ composer require neika-ai/sylius-plugin
        resource: '@NeikaSymfonyBundle/config/routes.php'
    ```
 
-   **Keep these routes off the shop's `_locale` prefix.** The backend calls `/chatbot/v1/*` on the shop host, and
-   the dashboard's Connect button opens `/chatbot/pair`.
+   **Keep these routes off the shop's `_locale` prefix.** The backend calls `/neika-chatbot/v1/*` on the shop host, and
+   the dashboard's Connect button opens `/neika-chatbot/pair`.
 
 3. `config/packages/security.yaml`. **Put the firewall before the Sylius `shop` firewall**, because `shop` matches `^/`:
 
@@ -54,7 +54,7 @@ composer require neika-ai/sylius-plugin
    +                users: []
         firewalls:
    +        chatbot_api:
-   +            pattern: ^/chatbot/v1
+   +            pattern: ^/neika-chatbot/v1
    +            stateless: true
    +            provider: chatbot_backend
    +            entry_point: Neika\SymfonyBundle\Security\ApiAuthenticationFailureHandler
@@ -64,7 +64,7 @@ composer require neika-ai/sylius-plugin
             shop:
                 # ...
         access_control:
-   +        - { path: ^/chatbot/v1, roles: ROLE_CHATBOT_BACKEND }
+   +        - { path: ^/neika-chatbot/v1, roles: ROLE_NEIKA_CHATBOT_BACKEND }
    ```
 
 4. `config/packages/neika.yaml`:
@@ -109,7 +109,7 @@ channel takes the first row that matches:
 
 A site key without an ingest secret still shows the widget. Notifications and order reports are skipped.
 
-The backend's calls to `/chatbot/v1` are accepted with `NEIKA_CHATBOT_API_SECRET` or the API secret of any paired channel.
+The backend's calls to `/neika-chatbot/v1` are accepted with `NEIKA_CHATBOT_API_SECRET` or the API secret of any paired channel.
 
 > **A paired API secret works on every channel**, not only on the channels it was paired with.
 
@@ -314,7 +314,7 @@ and sends the same batch again, up to 5 times.
 
 ```html
 <script src="{widget.cdn_url}" defer></script>
-<ai-chat-widget site-key="{site key}" locale="{app.locale}" backend-url="{backend_url}"></ai-chat-widget>
+<neika-chatbot-widget site-key="{site key}" locale="{app.locale}" backend-url="{backend_url}"></neika-chatbot-widget>
 ```
 
 - The site key is the current channel's, looked up on every render (`neika_site_key()`).
