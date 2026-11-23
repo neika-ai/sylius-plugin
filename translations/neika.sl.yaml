@@ -11,13 +11,16 @@ neika:
                 email: 'E-poštni naslov'
                 submit: 'Preveri stanje'
             not_found: 'Naročila %number% za vneseni e-poštni naslov nismo našli. Prosimo, preverite številko naročila in e-poštni naslov, ki ste ga uporabili pri nakupu.'
-            summary: 'Naročilo %number%: stanje %state%, plačilo %paymentState%, dostava %shippingState%, artiklov %items%, skupaj %total%.%tracking%'
+            summary: 'Naročilo %number%: stanje %state%, plačilo %paymentState%, dostava %shippingState%, skupaj %total%.%shippingMethod%%paymentMethod%%tracking%%itemLines%'
             tracking: ' Sledenje pošiljki: %codes%.'
+            shipping_method: ' Način dostave: %method%.'
+            payment_method: ' Način plačila: %method%.'
+            items: "\nArtikli:\n%lines%"
         get_product_availability:
             description: 'Vrne trenutno ceno, valuto in razpoložljivost na zalogi za največ 20 izdelkov glede na njihove kode.'
             unknown: 'Izdelka s kodo %code% ni bilo mogoče najti.'
-            line_in_stock: '%code% — %name%: %price% %currency%, na zalogi.'
-            line_out_of_stock: '%code% — %name%: %price% %currency%, trenutno ni na zalogi.'
+            line_in_stock: '%code% — %name%: %price%, na zalogi.'
+            line_out_of_stock: '%code% — %name%: %price%, trenutno ni na zalogi.'
     source:
         products:
             description: 'Aktivni izdelki prodajnega kanala, vključno z opisom, atributi, ceno in razpoložljivostjo.'

@@ -11,13 +11,16 @@ neika:
                 email: 'Адрес электронной почты'
                 submit: 'Проверить статус'
             not_found: 'Заказ %number% для указанного адреса электронной почты не найден. Пожалуйста, проверьте номер заказа и адрес электронной почты, указанный при оформлении.'
-            summary: 'Заказ %number%: статус %state%, оплата %paymentState%, доставка %shippingState%, позиций %items%, итого %total%.%tracking%'
+            summary: 'Заказ %number%: статус %state%, оплата %paymentState%, доставка %shippingState%, итого %total%.%shippingMethod%%paymentMethod%%tracking%%itemLines%'
             tracking: ' Отслеживание посылки: %codes%.'
+            shipping_method: ' Способ доставки: %method%.'
+            payment_method: ' Способ оплаты: %method%.'
+            items: "\nПозиции:\n%lines%"
         get_product_availability:
             description: 'Возвращает текущую цену, валюту и наличие на складе максимум для 20 товаров по их кодам.'
             unknown: 'Товар с кодом %code% не найден.'
-            line_in_stock: '%code% — %name%: %price% %currency%, в наличии.'
-            line_out_of_stock: '%code% — %name%: %price% %currency%, сейчас нет в наличии.'
+            line_in_stock: '%code% — %name%: %price%, в наличии.'
+            line_out_of_stock: '%code% — %name%: %price%, сейчас нет в наличии.'
     source:
         products:
             description: 'Активные товары канала продаж, включая описание, атрибуты, цену и наличие.'

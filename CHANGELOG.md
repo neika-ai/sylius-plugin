@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.1
+
+### Fixed
+
+- `get_order_status` names the order, payment and shipping state with the shop's own labels (`Čeká na platbu`, not `awaiting_payment`) and formats the total with the shop's money formatter (`949,00 Kč`, not `949.00 CZK`). It also lists the shipping method, the payment method and each item with its name, variant code and link. Items no longer sold get no link.
+- `get_product_availability` formats prices with the shop's money formatter.
+- Overridden messages keep working. New placeholders for `neika.tool.get_order_status.summary`: `%shippingMethod%`, `%paymentMethod%` and `%itemLines%`. `%price%` now includes the currency, so drop `%currency%` from overridden `get_product_availability.line_*` messages.
+
 ## v0.3.0
 
 ### Breaking

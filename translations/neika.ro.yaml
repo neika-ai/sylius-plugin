@@ -11,13 +11,16 @@ neika:
                 email: 'Adresa de e-mail'
                 submit: 'Verifică starea'
             not_found: 'Comanda %number% nu a fost găsită pentru adresa de e-mail introdusă. Vă rugăm să verificați numărul comenzii și adresa de e-mail folosită la cumpărare.'
-            summary: 'Comanda %number%: stare %state%, plată %paymentState%, livrare %shippingState%, articole %items%, total %total%.%tracking%'
+            summary: 'Comanda %number%: stare %state%, plată %paymentState%, livrare %shippingState%, total %total%.%shippingMethod%%paymentMethod%%tracking%%itemLines%'
             tracking: ' Urmărire colet: %codes%.'
+            shipping_method: ' Metodă de livrare: %method%.'
+            payment_method: ' Metodă de plată: %method%.'
+            items: "\nArticole:\n%lines%"
         get_product_availability:
             description: 'Returnează prețul actual, moneda și disponibilitatea în stoc pentru cel mult 20 de produse, după codurile lor.'
             unknown: 'Produsul cu codul %code% nu a fost găsit.'
-            line_in_stock: '%code% — %name%: %price% %currency%, în stoc.'
-            line_out_of_stock: '%code% — %name%: %price% %currency%, momentan nu este în stoc.'
+            line_in_stock: '%code% — %name%: %price%, în stoc.'
+            line_out_of_stock: '%code% — %name%: %price%, momentan nu este în stoc.'
     source:
         products:
             description: 'Produsele active ale canalului de vânzare, inclusiv descrierea, atributele, prețul și disponibilitatea.'

@@ -11,13 +11,16 @@ neika:
                 email: 'E-mail-cím'
                 submit: 'Állapot lekérdezése'
             not_found: 'A(z) %number% számú rendelés nem található a megadott e-mail-címmel. Kérjük, ellenőrizze a rendelésszámot és a vásárláskor megadott e-mail-címet.'
-            summary: 'Rendelés %number%: állapot %state%, fizetés %paymentState%, szállítás %shippingState%, tételek száma %items%, összesen %total%.%tracking%'
+            summary: 'Rendelés %number%: állapot %state%, fizetés %paymentState%, szállítás %shippingState%, összesen %total%.%shippingMethod%%paymentMethod%%tracking%%itemLines%'
             tracking: ' Csomagkövetés: %codes%.'
+            shipping_method: ' Szállítási mód: %method%.'
+            payment_method: ' Fizetési mód: %method%.'
+            items: "\nTételek:\n%lines%"
         get_product_availability:
             description: 'Legfeljebb 20 termék aktuális árát, pénznemét és készletállapotát adja vissza a termékkódjuk alapján.'
             unknown: 'A(z) %code% kódú termék nem található.'
-            line_in_stock: '%code% — %name%: %price% %currency%, raktáron.'
-            line_out_of_stock: '%code% — %name%: %price% %currency%, jelenleg nincs raktáron.'
+            line_in_stock: '%code% — %name%: %price%, raktáron.'
+            line_out_of_stock: '%code% — %name%: %price%, jelenleg nincs raktáron.'
     source:
         products:
             description: 'Az értékesítési csatorna aktív termékei leírással, tulajdonságokkal, árral és elérhetőséggel.'

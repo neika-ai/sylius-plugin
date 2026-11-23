@@ -11,13 +11,16 @@ neika:
                 email: 'E-mail adresa'
                 submit: 'Provjeri status'
             not_found: 'Narudžba %number% nije pronađena za unesenu e-mail adresu. Molimo provjerite broj narudžbe i e-mail adresu korištenu pri kupnji.'
-            summary: 'Narudžba %number%: status %state%, plaćanje %paymentState%, dostava %shippingState%, stavki %items%, ukupno %total%.%tracking%'
+            summary: 'Narudžba %number%: status %state%, plaćanje %paymentState%, dostava %shippingState%, ukupno %total%.%shippingMethod%%paymentMethod%%tracking%%itemLines%'
             tracking: ' Praćenje pošiljke: %codes%.'
+            shipping_method: ' Način dostave: %method%.'
+            payment_method: ' Način plaćanja: %method%.'
+            items: "\nStavke:\n%lines%"
         get_product_availability:
             description: 'Vraća trenutnu cijenu, valutu i dostupnost na zalihi za najviše 20 proizvoda prema njihovim šiframa.'
             unknown: 'Proizvod sa šifrom %code% nije pronađen.'
-            line_in_stock: '%code% — %name%: %price% %currency%, na zalihi.'
-            line_out_of_stock: '%code% — %name%: %price% %currency%, trenutno nije na zalihi.'
+            line_in_stock: '%code% — %name%: %price%, na zalihi.'
+            line_out_of_stock: '%code% — %name%: %price%, trenutno nije na zalihi.'
     source:
         products:
             description: 'Aktivni proizvodi prodajnog kanala, uključujući opis, atribute, cijenu i dostupnost.'

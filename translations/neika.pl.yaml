@@ -11,13 +11,16 @@ neika:
                 email: 'Adres e-mail'
                 submit: 'Sprawdź status'
             not_found: 'Nie znaleziono zamówienia %number% dla podanego adresu e-mail. Prosimy sprawdzić numer zamówienia i adres e-mail podany przy zakupie.'
-            summary: 'Zamówienie %number%: status %state%, płatność %paymentState%, wysyłka %shippingState%, liczba pozycji %items%, razem %total%.%tracking%'
+            summary: 'Zamówienie %number%: status %state%, płatność %paymentState%, wysyłka %shippingState%, razem %total%.%shippingMethod%%paymentMethod%%tracking%%itemLines%'
             tracking: ' Śledzenie przesyłki: %codes%.'
+            shipping_method: ' Sposób dostawy: %method%.'
+            payment_method: ' Metoda płatności: %method%.'
+            items: "\nPozycje:\n%lines%"
         get_product_availability:
             description: 'Zwraca aktualną cenę, walutę i dostępność w magazynie dla maksymalnie 20 produktów na podstawie ich kodów.'
             unknown: 'Nie znaleziono produktu o kodzie %code%.'
-            line_in_stock: '%code% — %name%: %price% %currency%, dostępny w magazynie.'
-            line_out_of_stock: '%code% — %name%: %price% %currency%, obecnie niedostępny.'
+            line_in_stock: '%code% — %name%: %price%, dostępny w magazynie.'
+            line_out_of_stock: '%code% — %name%: %price%, obecnie niedostępny.'
     source:
         products:
             description: 'Aktywne produkty kanału sprzedaży wraz z opisem, atrybutami, ceną i dostępnością.'

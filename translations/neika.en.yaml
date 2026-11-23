@@ -11,13 +11,16 @@ neika:
                 email: 'E-mail address'
                 submit: 'Check status'
             not_found: 'Order %number% was not found for the given e-mail address. Please check the order number and the e-mail used at checkout.'
-            summary: 'Order %number%: status %state%, payment %paymentState%, shipping %shippingState%, items %items%, total %total%.%tracking%'
+            summary: 'Order %number%: status %state%, payment %paymentState%, shipping %shippingState%, total %total%.%shippingMethod%%paymentMethod%%tracking%%itemLines%'
             tracking: ' Tracking: %codes%.'
+            shipping_method: ' Shipping method: %method%.'
+            payment_method: ' Payment method: %method%.'
+            items: "\nItems:\n%lines%"
         get_product_availability:
             description: 'Returns current price, currency and stock availability for up to 20 products identified by their product codes.'
             unknown: 'Product with code %code% was not found.'
-            line_in_stock: '%code% — %name%: %price% %currency%, in stock.'
-            line_out_of_stock: '%code% — %name%: %price% %currency%, currently out of stock.'
+            line_in_stock: '%code% — %name%: %price%, in stock.'
+            line_out_of_stock: '%code% — %name%: %price%, currently out of stock.'
     source:
         products:
             description: 'Enabled products of the shop channel, including description, attributes, price and availability.'

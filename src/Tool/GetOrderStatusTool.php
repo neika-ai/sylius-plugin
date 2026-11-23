@@ -16,8 +16,14 @@ use Neika\Sdk\DTO\ToolUiHints;
 use Neika\Sdk\Enum\FormFieldType;
 use Neika\SymfonyBundle\NeikaSymfonyBundle;
 use Neika\SymfonyBundle\Translation\ChannelFallbackTranslator;
+use Neika\SyliusPlugin\Contract\ProductIndexabilityInterface;
+use Neika\SyliusPlugin\Contract\ProductViewFactoryInterface;
 use Neika\SyliusPlugin\Tool\DTO\OrderStatusArguments;
+use Sylius\Bundle\MoneyBundle\Formatter\MoneyFormatterInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\OrderItemInterface;
+use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Order\Model\OrderInterface as BaseOrderInterface;
@@ -35,6 +41,10 @@ class GetOrderStatusTool implements ChatbotToolInterface
 
         #[Autowire(service: ChannelFallbackTranslator::class)]
         private readonly TranslatorInterface $translator,
+
+        private readonly MoneyFormatterInterface      $moneyFormatter,
+        private readonly ProductViewFactoryInterface  $productViewFactory,
+        private readonly ProductIndexabilityInterface $productIndexability,
     ) {
     }
 
@@ -90,21 +100,25 @@ class GetOrderStatusTool implements ChatbotToolInterface
         }
 
         $trackingValues = $this->createTrackingValues($order);
+        $locale = $context->locale;
 
         return new ToolResult(
             [new ContentItem($this->translator->trans(
                 'neika.tool.get_order_status.summary',
                 [
                     '%number%' => $this->formatSlot(self::ORDER_NUMBER_KEY),
-                    '%state%' => (string) $order->getState(),
-                    '%paymentState%' => (string) $order->getPaymentState(),
-                    '%shippingState%' => (string) $order->getShippingState(),
+                    '%state%' => $this->translateState((string) $order->getState(), $locale),
+                    '%paymentState%' => $this->translateState((string) $order->getPaymentState(), $locale),
+                    '%shippingState%' => $this->translateState((string) $order->getShippingState(), $locale),
+                    '%total%' => $this->moneyFormatter->format($order->getTotal(), (string) $order->getCurrencyCode(), $locale),
+                    '%shippingMethod%' => $this->formatMethod('shipping_method', $this->findShippingMethodNames($order, $locale), $locale),
+                    '%paymentMethod%' => $this->formatMethod('payment_method', $this->findPaymentMethodNames($order, $locale), $locale),
+                    '%tracking%' => $this->formatTracking($trackingValues, $locale),
                     '%items%' => $order->getTotalQuantity(),
-                    '%total%' => $this->formatTotal($order),
-                    '%tracking%' => $this->formatTracking($trackingValues, $context->locale),
+                    '%itemLines%' => $this->formatItems($order, $locale),
                 ],
                 NeikaSymfonyBundle::TRANSLATION_DOMAIN,
-                $context->locale,
+                $locale,
             ))],
             privateValues: [new PrivateValue(self::ORDER_NUMBER_KEY, (string) $order->getNumber()), ...$trackingValues],
         );
@@ -143,13 +157,128 @@ class GetOrderStatusTool implements ChatbotToolInterface
         return strcasecmp($customerEmail, $email) === 0;
     }
 
-    private function formatTotal(OrderInterface $order): string
+    private function translateState(string $state, string $locale): string
     {
-        return sprintf(
-            '%s %s',
-            number_format($order->getTotal() / 100, 2, '.', ' '),
-            (string) $order->getCurrencyCode(),
+        $labelKey = sprintf('sylius.ui.%s', $state);
+        $label = $this->translator->trans($labelKey, [], 'messages', $locale);
+
+        return $label === $labelKey ? $state : $label;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function findShippingMethodNames(OrderInterface $order, string $locale): array
+    {
+        $names = [];
+        foreach ($order->getShipments() as $shipment) {
+            $method = $shipment instanceof ShipmentInterface ? $shipment->getMethod() : null;
+            $name = (string) $method?->getTranslation($locale)->getName();
+            $hasName = $name !== '';
+            if ($hasName) {
+                $names[] = $name;
+            }
+        }
+
+        return array_values(array_unique($names));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function findPaymentMethodNames(OrderInterface $order, string $locale): array
+    {
+        $name = (string) $order->getLastPayment()?->getMethod()?->getTranslation($locale)->getName();
+
+        return $name === '' ? [] : [$name];
+    }
+
+    /**
+     * @param list<string> $names
+     */
+    private function formatMethod(string $key, array $names, string $locale): string
+    {
+        if ($names === []) {
+            return '';
+        }
+
+        return $this->translator->trans(
+            sprintf('neika.tool.get_order_status.%s', $key),
+            ['%method%' => implode(', ', $names)],
+            NeikaSymfonyBundle::TRANSLATION_DOMAIN,
+            $locale,
         );
+    }
+
+    private function formatItems(OrderInterface $order, string $locale): string
+    {
+        $orderChannel = $order->getChannel();
+        $channel = $orderChannel instanceof ChannelInterface ? $orderChannel : null;
+        $lines = [];
+        foreach ($order->getItems() as $orderItem) {
+            if ($orderItem instanceof OrderItemInterface) {
+                $lines[] = $this->formatItemLine($orderItem, $channel, $locale);
+            }
+        }
+
+        if ($lines === []) {
+            return '';
+        }
+
+        return $this->translator->trans(
+            'neika.tool.get_order_status.items',
+            ['%lines%' => implode("\n", $lines)],
+            NeikaSymfonyBundle::TRANSLATION_DOMAIN,
+            $locale,
+        );
+    }
+
+    private function formatItemLine(OrderItemInterface $orderItem, ?ChannelInterface $channel, string $locale): string
+    {
+        $variant = $orderItem->getVariant();
+        $line = sprintf('- %d× %s', $orderItem->getQuantity(), $this->buildBoughtName($orderItem));
+        $code = (string) $variant?->getCode();
+        $hasCode = $code !== '';
+        if ($hasCode) {
+            $line .= sprintf(' (%s)', $code);
+        }
+
+        $url = $this->findLiveProductUrl($variant, $channel, $locale);
+        if ($url === null) {
+            return $line;
+        }
+
+        return sprintf('%s: %s', $line, $url);
+    }
+
+    private function buildBoughtName(OrderItemInterface $orderItem): string
+    {
+        $productName = (string) $orderItem->getProductName();
+        $variantName = (string) $orderItem->getVariantName();
+        $hasOwnName = $variantName !== '' && $variantName !== $productName;
+
+        if (!$hasOwnName) {
+            return $productName;
+        }
+
+        return sprintf('%s — %s', $productName, $variantName);
+    }
+
+    private function findLiveProductUrl(?ProductVariantInterface $variant, ?ChannelInterface $channel, string $locale): ?string
+    {
+        if ($variant === null) {
+            return null;
+        }
+        if ($channel === null) {
+            return null;
+        }
+
+        $isLive = $this->productIndexability->isIndexable($variant, $channel);
+        if (!$isLive) {
+            return null;
+        }
+
+        return $this->productViewFactory->createItem($variant, $channel, $locale)?->url;
     }
 
     /**

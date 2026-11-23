@@ -11,13 +11,16 @@ neika:
                 email: 'E-mailová adresa'
                 submit: 'Zjistit stav'
             not_found: 'Objednávka %number% nebyla pro zadaný e-mail nalezena. Zkontrolujte prosím číslo objednávky a e-mail použitý při nákupu.'
-            summary: 'Objednávka %number%: stav %state%, platba %paymentState%, doprava %shippingState%, položek %items%, celkem %total%.%tracking%'
+            summary: 'Objednávka %number%: stav %state%, platba %paymentState%, doprava %shippingState%, celkem %total%.%shippingMethod%%paymentMethod%%tracking%%itemLines%'
             tracking: ' Sledování zásilky: %codes%.'
+            shipping_method: ' Způsob dopravy: %method%.'
+            payment_method: ' Způsob platby: %method%.'
+            items: "\nPoložky:\n%lines%"
         get_product_availability:
             description: 'Vrací aktuální cenu, měnu a skladovou dostupnost až 20 produktů podle jejich kódů.'
             unknown: 'Produkt s kódem %code% nebyl nalezen.'
-            line_in_stock: '%code% — %name%: %price% %currency%, skladem.'
-            line_out_of_stock: '%code% — %name%: %price% %currency%, momentálně není skladem.'
+            line_in_stock: '%code% — %name%: %price%, skladem.'
+            line_out_of_stock: '%code% — %name%: %price%, momentálně není skladem.'
     source:
         products:
             description: 'Aktivní produkty prodejního kanálu včetně popisu, atributů, ceny a dostupnosti.'

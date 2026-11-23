@@ -17,6 +17,7 @@ use Neika\SyliusPlugin\Contract\ProductViewFactoryInterface;
 use Neika\SyliusPlugin\Tool\DTO\ProductAvailabilityArguments;
 use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\Component\Core\Repository\ProductVariantRepositoryInterface;
+use Sylius\Bundle\MoneyBundle\Formatter\MoneyFormatterInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -31,6 +32,8 @@ class GetProductAvailabilityTool implements ChatbotToolInterface
 
         #[Autowire(service: 'sylius.repository.product_variant')]
         private readonly ProductVariantRepositoryInterface $variantRepository,
+
+        private readonly MoneyFormatterInterface $moneyFormatter,
     ) {
     }
 
@@ -80,7 +83,7 @@ class GetProductAvailabilityTool implements ChatbotToolInterface
                 [
                     '%code%' => $item->code,
                     '%name%' => $item->name,
-                    '%price%' => number_format($item->priceMinor / 100, 2, '.', ' '),
+                    '%price%' => $this->moneyFormatter->format($item->priceMinor, $item->currency, $context->locale),
                     '%currency%' => $item->currency,
                 ],
                 NeikaSymfonyBundle::TRANSLATION_DOMAIN,

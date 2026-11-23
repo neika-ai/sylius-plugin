@@ -212,11 +212,12 @@ Click Connect again to retry.
 
 The backend calls these mid-conversation:
 
-- `get_order_status`: order state, payment and shipping state, tracking codes, item count and total. Needs the
+- `get_order_status`: order, payment and shipping state as the shop labels them, shipping and payment method,
+  tracking codes, the total in the shop's money format, and each item's quantity, name, variant code and link. Needs the
   order number and the customer's e-mail. A wrong e-mail, an unknown number and an unplaced cart all get the same
   "not found". A pasted number with spaces or dashes is found too.
   The order number, e-mail and tracking codes are [personal data](https://github.com/neika-ai/sdk#personal-data-in-tools).
-- `get_product_availability`: price, currency and stock for up to 20 variant codes, plus a `products` block for
+- `get_product_availability`: price in the shop's money format and stock for up to 20 variant codes, plus a `products` block for
   the widget.
 
 **Their texts ship in cs, en, de, sk, pl, hu, ro, sl, hr and ru**, in the `neika` domain. A missing language falls
