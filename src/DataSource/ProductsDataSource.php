@@ -172,6 +172,12 @@ class ProductsDataSource implements ChatbotDataSourceInterface
             $metadata['associations'] = $associations;
         }
 
+        $taxonPositions = $this->collectTaxonPositions($product);
+
+        if ($taxonPositions !== []) {
+            $metadata['taxonPositions'] = $taxonPositions;
+        }
+
         $text = $this->buildText($product, $locale, $item->name, $attributes, $taxonNames, $optionValues);
         $updatedAt = $variant->getUpdatedAt() ?? $product->getUpdatedAt() ?? $product->getCreatedAt() ?? new \DateTimeImmutable();
 
@@ -436,6 +442,25 @@ class ProductsDataSource implements ChatbotDataSourceInterface
         }
 
         return array_values(array_unique($codes));
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function collectTaxonPositions(ProductInterface $product): array
+    {
+        $positions = [];
+        foreach ($product->getProductTaxons() as $productTaxon) {
+            $code = $productTaxon->getTaxon()?->getCode();
+            $position = $productTaxon->getPosition();
+            if ($code === null || $code === '' || $position === null) {
+                continue;
+            }
+
+            $positions[$code] = $position;
+        }
+
+        return $positions;
     }
 
     private function buildMainTaxonPath(ProductInterface $product, string $locale): string

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.2
+
+### Added
+
+- Product documents send `taxonPositions`: each category code with the product's position in it, so Neika can list a category's products in the shop's order.
+
 ## v0.3.1
 
 ### Fixed

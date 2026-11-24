@@ -25,6 +25,7 @@ use Psr\Log\NullLogger;
 use Sylius\Bundle\CoreBundle\Doctrine\ORM\ProductVariantRepository;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\ProductInterface;
+use Sylius\Component\Core\Model\ProductTaxonInterface;
 use Sylius\Component\Core\Model\ProductTranslationInterface;
 use Sylius\Component\Core\Model\ProductVariant;
 use Sylius\Component\Core\Model\ProductVariantInterface;
@@ -116,11 +117,24 @@ class ProductsDataSourceTest extends TestCase
         return $taxon;
     }
 
+    private function createProductTaxon(TaxonInterface $taxon, ?int $position): ProductTaxonInterface
+    {
+        $productTaxon = $this->createStub(ProductTaxonInterface::class);
+        $productTaxon->method('getTaxon')->willReturn($taxon);
+        $productTaxon->method('getPosition')->willReturn($position);
+
+        return $productTaxon;
+    }
+
     /**
      * @param list<ProductAssociationInterface> $associations
+     * @param list<ProductTaxonInterface>       $productTaxons
      */
-    private function createProduct(?string $description = null, array $associations = []): ProductInterface
-    {
+    private function createProduct(
+        ?string $description = null,
+        array $associations = [],
+        array $productTaxons = [],
+    ): ProductInterface {
         $translation = $this->createStub(ProductTranslationInterface::class);
         $translation->method('getName')->willReturn('T-Shirt');
         $translation->method('getShortDescription')->willReturn(null);
@@ -140,6 +154,7 @@ class ProductsDataSourceTest extends TestCase
         $product->method('getMainTaxon')->willReturn($mainTaxon);
         $product->method('getUpdatedAt')->willReturn(new \DateTime('2026-01-01T00:00:00+00:00'));
         $product->method('getAssociations')->willReturn(new ArrayCollection($associations));
+        $product->method('getProductTaxons')->willReturn(new ArrayCollection($productTaxons));
 
         return $product;
     }
@@ -244,6 +259,21 @@ class ProductsDataSourceTest extends TestCase
             $page->documents[0]->metadata['associations'],
         );
         self::assertArrayNotHasKey('associations', $page->documents[1]->metadata);
+    }
+
+    public function testMetadataMapsTaxonCodesToTheProductPositionInThem(): void
+    {
+        $product = $this->createProduct(productTaxons: [
+            $this->createProductTaxon($this->createTaxon('CLOTHING', 'Clothing'), 3),
+            $this->createProductTaxon($this->createTaxon('T_SHIRTS', 'T-Shirts'), 0),
+            $this->createProductTaxon($this->createTaxon('SALE', 'Sale'), null),
+        ]);
+        $dataSource = $this->createDataSource([$this->createVariant(product: $product), $this->createVariant()]);
+
+        $page = $dataSource->getDocuments(new SourceQuery('cs_CZ'));
+
+        self::assertSame(['CLOTHING' => 3, 'T_SHIRTS' => 0], $page->documents[0]->metadata['taxonPositions']);
+        self::assertArrayNotHasKey('taxonPositions', $page->documents[1]->metadata);
     }
 
     public function testRichEditorDescriptionIsIndexedAsItsRenderedText(): void
